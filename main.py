@@ -5,7 +5,7 @@ import csv
 import re
 from PIL import Image
 from bs4 import BeautifulSoup
-from rgb_calculator import calculate_rgb, step
+from utils import get_dominant_color, step
 
 def get_film_slug(title):
 	return "-".join(re.split("' |: |, |; | & | + | |'|:|\.|,|;|\?|!|\(|\)|&|@|#|\[|\]|/|\$|\+|=|-|\*|\{|\}", title)).lower()
@@ -39,15 +39,16 @@ class FilmData:
 	@img.setter
 	def img(self, val):
 		self._img = val
-		self.rgb = calculate_rgb(self._img)
+		self.rgb = get_dominant_color(self._img)
+		print(self.rgb)
 
 	@img.deleter
 	def img(self):
 		del self._img
 	
 
-url = ""
-output_name = ""
+url = "https://letterboxd.com/kun/list/befriending-the-lyrical-loneliness/"
+output_name = "colorboxd"
 soup = get_soup(url)
 
 posters = soup.find_all('div', class_="poster film-poster really-lazy-load")
@@ -63,14 +64,12 @@ for poster in posters:
 	img_url = get_img_url(film_soup)
 	year = get_year(film_soup)
 	film_data = FilmData(title, year)
-	try:
-		img = Image.open(requests.get(img_url, stream=True).raw)
-		film_data.img = img
-		all_data.append(film_data)
-	except:
-		print(f"{title} img fail")
+	img = Image.open(requests.get(img_url, stream=True).raw)
+	film_data.img = img
+	all_data.append(film_data)
 
 all_data.sort(key=lambda data: step(data.rgb[0], data.rgb[1], data.rgb[2], 8))
+# all_data.sort(key=lambda data: colorsys.rgb_to_hsv(*data.rgb))
 
 with open(f"{output_name}.csv", 'w', newline='') as file:
 	writer = csv.writer(file)
